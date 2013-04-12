@@ -7,7 +7,7 @@ Module StatusConsole
 
     Private _host As String
     Private _port As Integer
-    Private _abSide As String = "A"
+    Private _abSide As String = ""
     Private _interval As Integer = 5000
     Private _machine As Machine
     Private _lastStatus As Status
@@ -38,18 +38,31 @@ Module StatusConsole
                 Case ConsoleKey.X
                     Exit Do
                 Case ConsoleKey.T
-                    _abSide = If(_abSide = "A", "B", "A")
+                    Select Case _abSide
+                        Case "A"
+                            _abSide = "B"
+                            DisplayMessage("Displaying B-side")
+                        Case "B"
+                            _abSide = ""
+                            DisplayMessage("Displaying all axes")
+                        Case ""
+                            _abSide = "A"
+                            DisplayMessage("Displaying A-side")
+                        Case Else
+                            _abSide = ""
+                    End Select
                     UpdateAxes(_lastStatus)
+
                 Case ConsoleKey.F
                     _interval = Math.Max(1000, _interval - 1000)
-                    Prompt("Polling every " & _interval \ 1000 & "s.")
+                    DisplayMessage("Polling every " & _interval \ 1000 & "s.")
                 Case ConsoleKey.S
                     _interval = Math.Min(60000, _interval + 1000)
-                    Prompt("Polling every " & _interval \ 1000 & "s.")
+                    DisplayMessage("Polling every " & _interval \ 1000 & "s.")
                 Case ConsoleKey.P
                     If _poller.IsAlive Then
                         _poller.Abort()
-                        Prompt("Paused. Press [P] to resume.")
+                        DisplayMessage("Paused. Press [P] to resume.")
                     Else
                         _poller = New Thread(AddressOf UpdateWorker)
                         _poller.IsBackground = True
@@ -77,7 +90,7 @@ Module StatusConsole
             Loop
         Catch ta As ThreadAbortException
         Catch ex As Exception
-            Prompt(ex.Message)
+            DisplayMessage(ex.Message)
         End Try
     End Sub
 
@@ -86,7 +99,7 @@ Module StatusConsole
         Console.BackgroundColor = backcolor
     End Sub
 
-    Private Sub Prompt(ByVal message As String)
+    Private Sub DisplayMessage(ByVal message As String)
         Console.SetCursorPosition(0, (Console.WindowHeight - 3) \ 2)
         SetColors(ConsoleColor.Black, ConsoleColor.White)
 
@@ -291,7 +304,7 @@ Module StatusConsole
 
         Dim axes As New List(Of String)()
         For Each ax As String In status.Axis.Keys
-            If (ax.EndsWith(_abSide) OrElse ax.StartsWith("S")) AndAlso Not ax.StartsWith("F") Then axes.Add(ax)
+            If (ax.EndsWith(_abSide) OrElse ax.StartsWith("S") OrElse _abSide = "") AndAlso Not ax.StartsWith("F") Then axes.Add(ax)
         Next ax
 
 
